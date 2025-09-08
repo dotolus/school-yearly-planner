@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>לוח זמנים אינטראקטיבי למתמטיקה כיתה ד'</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            direction: rtl;
+        }
+
+        .timeline-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(45deg, #ff6b6b, #feca57);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .current-date-indicator {
+            padding: 15px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            text-align: center;
+        }
+
+        .today-marker {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 12px 25px;
+            border-radius: 30px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+            animation: todayPulse 3s infinite;
+        }
+
+        .today-icon {
+            font-size: 1.2rem;
+        }
+
+        .today-text {
+            font-weight: bold;
+            color: #2d3436;
+            font-size: 1.1rem;
+        }
+
+        @keyframes todayPulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15); }
+            50% { transform: scale(1.02); box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3); }
+        }
+
+        .controls {
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .filter-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .filter-btn.active {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .filter-btn.lessons { background: #74b9ff; color: white; }
+        .filter-btn.assignments { background: #fd79a8; color: white; }
+        .filter-btn.tests { background: #fdcb6e; color: white; }
+        .filter-btn.all { background: #00b894; color: white; }
+
+        .timeline {
+            padding: 40px 20px;
+            position: relative;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            right: 50%;
+            top: 80px;
+            bottom: 0;
+            width: 4px;
+            background: linear-gradient(to bottom, #ff6b6b, #feca57, #74b9ff, #fd79a8);
+            transform: translateX(50%);
+        }
+
+        .today-timeline-marker {
+            position: absolute;
+            right: 50%;
+            transform: translateX(50%);
+            z-index: 25;
+        }
+
+        .today-marker-circle {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(45deg, #ff6b6b, #feca57);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 0 6px rgba(255, 107, 107, 0.3), 0 0 0 12px rgba(255, 107, 107, 0.15);
+            animation: todayMarkerPulse 2s infinite;
+            border: 3px solid white;
+        }
+
+        .today-marker-text {
+            color: white;
+            font-weight: bold;
+            font-size: 11px;
+            text-align: center;
+            line-height: 1;
+        }
+
+        @keyframes todayMarkerPulse {
+            0%, 100% { 
+                transform: translateX(50%) scale(1); 
+                box-shadow: 0 0 0 8px rgba(255, 107, 107, 0.2), 0 0 0 16px rgba(255, 107, 107, 0.1);
+            }
+            50% { 
+                transform: translateX(50%) scale(1.1); 
+                box-shadow: 0 0 0 12px rgba(255, 107, 107, 0.3), 0 0 0 24px rgba(255, 107, 107, 0.15);
+            }
+        }
+
+        .month-section {
+            margin-bottom: 60px;
+            position: relative;
+        }
+
+        .month-header {
+            text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+            z-index: 20;
+        }
+
+        .month-title {
+            display: inline-block;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 30px;
+            opacity: 1;
+            transition: all 0.5s ease;
+        }
+
+        .timeline-item.hidden {
+            display: none;
+        }
+
+        .timeline-item:nth-child(odd) .item-content {
+            margin-right: calc(50% + 30px);
+        }
+
+        .timeline-item:nth-child(even) .item-content {
+            margin-left: calc(50% + 30px);
+            text-align: left;
+        }
+
+        .item-content {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-right: 5px solid;
+        }
+
+        .item-content:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+        }
+
+        .item-content.lesson { border-right-color: #74b9ff; }
+        .item-content.assignment { border-right-color: #fd79a8; }
+        .item-content.test { border-right-color: #fdcb6e; }
+
+        .item-icon {
+            position: absolute;
+            right: 50%;
+            top: 20px;
+            transform: translateX(50%);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            color: white;
+            z-index: 10;
+        }
+
+        .item-icon.lesson { background: #74b9ff; }
+        .item-icon.assignment { background: #fd79a8; }
+        .item-icon.test { background: #fdcb6e; }
+
+        .item-title {
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #2d3436;
+        }
+
+        .item-date {
+            font-size: 0.9rem;
+            color: #636e72;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .item-description {
+            color: #636e72;
+            line-height: 1.5;
+        }
+
+        .item-details {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 2px dashed #ddd;
+        }
+
+        .item-details.expanded {
+            max-height: 200px;
+        }
+
+
+
+        @media (max-width: 768px) {
+            .timeline::before {
+                right: 30px;
+            }
+
+            .timeline-item:nth-child(odd) .item-content,
+            .timeline-item:nth-child(even) .item-content {
+                margin-right: 60px;
+                margin-left: 0;
+                text-align: right;
+            }
+
+            .item-icon {
+                right: 30px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="timeline-container">
+        <div class="header">
+            <h1>🧮 מסע המתמטיקה של כיתה ד'</h1>
+            <p>שנה מדהימה של הרפתקאות מתמטיות!</p>
+        </div>
+
+
+
+        <div class="current-date-indicator">
+            <div class="today-marker">
+                <span class="today-icon">📅</span>
+                <span class="today-text">היום: 9 בדצמבר, 2024</span>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="filter-btn all active" onclick="filterItems('all')">📚 הצג הכל</button>
+            <button class="filter-btn lessons" onclick="filterItems('lesson')">📖 שיעורים</button>
+            <button class="filter-btn assignments" onclick="filterItems('assignment')">✏️ מטלות</button>
+            <button class="filter-btn tests" onclick="filterItems('test')">🎯 מבחנים</button>
+        </div>
+
+        <div class="timeline" id="timeline">
+            <!-- Today marker on timeline -->
+            <div class="today-timeline-marker">
+                <div class="today-marker-circle">
+                    <div class="today-marker-text">היום</div>
+                </div>
+            </div>
+
+            <!-- ספטמבר -->
+            <div class="month-section">
+                <div class="month-header">
+                    <div class="month-title">🍂 ספטמבר - מתחילים!</div>
+                </div>
+
+                <div class="timeline-item lesson" data-type="lesson">
+                    <div class="item-icon lesson">📚</div>
+                    <div class="item-content lesson">
+                        <div class="item-title">יום הכרות עם המתמטיקה</div>
+                        <div class="item-date">3 בספטמבר, 2024</div>
+                        <div class="item-description">יום פתיחה מיוחד! הכרות עם המתמטיקה של כיתה ד' ומשחקי חשיבה מהנים.</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item lesson" data-type="lesson">
+                    <div class="item-icon lesson">📚</div>
+                    <div class="item-content lesson">
+                        <div class="item-title">ערך מקום וחשיבה מספרית</div>
+                        <div class="item-date">5-9 בספטמבר, 2024</div>
+                        <div class="item-description">הבנת אלפים, מאות, עשרות ויחידות. קריאה וכתיבה של מספרים גדולים!</div>
+                        <div class="item-details">
+                            <p><strong>כישורים:</strong> קריאת מספרים עד 100,000, השוואת מספרים, עיגול לעשרה ומאה הקרובים</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="timeline-item assignment" data-type="assignment">
+                    <div class="item-icon assignment">✏️</div>
+                    <div class="item-content assignment">
+                        <div class="item-title">דף עבודה בלש המספרים</div>
+                        <div class="item-date">מועד הגשה: 12 בספטמבר, 2024</div>
+                        <div class="item-description">פתרון חידות מספרים ותרגול ערך מקום עם תרחישי בלש מהנים!</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item lesson" data-type="lesson">
+                    <div class="item-icon lesson">📚</div>
+                    <div class="item-content lesson">
+                        <div class="item-title">אסטרטגיות חיבור וחיסור</div>
+                        <div class="item-date">12-16 בספטמבר, 2024</div>
+                        <div class="item-description">טריקים של חשבון בעל פה ואלגוריתמים לבעיות רב-ספרתיות.</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item assignment" data-type="assignment">
+                    <div class="item-icon assignment">✏️</div>
+                    <div class="item-content assignment">
+                        <div class="item-title">פרויקט מספרים בסביבה</div>
+                        <div class="item-date">מועד הגשה: 19 בספטמבר, 2024</div>
+                        <div class="item-description">צאו לחפש מספרים גדולים בסביבה - בבניינים, רכבים ושלטים!</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item test" data-type="test">
+                    <div class="item-icon test">🎯</div>
+                    <div class="item-content test">
+                        <div class="item-title">חידון ערך מקום</div>
+                        <div class="item-date">20 בספטמבר, 2024</div>
+                        <div class="item-description">הראו מה אתם יודעים על קריאה, כתיבה והשוואת מספרים!</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item lesson" data-type="lesson">
+                    <div class="item-icon lesson">📚</div>
+                    <div class="item-content lesson">
+                        <div class="item-title">בעיות מילוליות בחיבור וחיסור</div>
+                        <div class="item-date">23-27 בספטמבר, 2024</div>
+                        <div class="item-description">פתרון בעיות מהחיים האמיתיים עם אסטרטגיות שונות.</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item assignment" data-type="assignment">
+                    <div class="item-icon assignment">✏️</div>
+                    <div class="item-content assignment">
+                        <div class="item-title">יומן מתמטיקה אישי</div>
+                        <div class="item-date">מועד הגשה: 30 בספטמבר, 2024</div>
+                        <div class="item-description">התחילו לכתוב יומן על הלמידה שלכם במתמטיקה!</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- אוקטובר -->
+            <div class="month-section">
+                <div class="month-header">
+                    <div class="month-title">🎃 אוקטובר - קסם הכפל!</div>
+                </div>
+
+                <div class="timeline-item lesson" data-type="lesson">
+                    <div class="item-icon lesson">📚</div>
+                    <div class="item-content lesson">
+                        <div class="item-title">עובדות כפל ותבניות</div>
+                        <div class="item-date">1-4 באוקטובר, 2024</div>
+                        <div class="item-description">שליטה בלוחות הכפל וגילוי תבניות מספרים מדהימות!</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item assignment" data-type="assignment">
+                    <div class="item-icon assignment">✏️</div>
+                    <div class="item-content assignment">
+                        <div class="item-title">משחק זיכרון לוחות כפל</div>
+                        <div class="item-date">מועד הגשה: 7 באוקטובר, 2024</div>
+                        <div class="item-description">יצירת משחק זיכרון אישי ללוחות הכפל!</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item lesson" data-type="lesson">
+                    <div class="item-icon lesson">📚</div>
+                    <div class="item-content lesson">
+                        <div class="item-title">כפל במספרים עגולים</div>
+                        <div class="item-date">8-11 באוקטובר, 2024</div>
+                        <div class="item-description">טריקים לכפל במספרים כמו 10, 100, 1000 ועוד!</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item assignment" data-type="assignment">
+                    <div class="item-icon assignment">✏️</div>
+                    <div class="item-content assignment">
+                        <div class="item-title">אתגר לוחות הכפל</div>
+                        <div class="item-date">14-18 באוקטובר, 2024</div>
+                        <div class="item-description">דפי תרגול יומיים כדי להפוך למאסטר כפל!</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item lesson" data-type="lesson">
+                    <div class="item-icon lesson">📚</div>
+                    <div class="item-content lesson">
+                        <div class="item-title">כפל רב-ספרתי</div>
+                        <div class="item-date">21-25 באוקטובר, 2024</div>
+                        <div class="item-description">לימוד האלגוריתם הסטנדרטי לכפל מספרים גדולים יותר.</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item test" data-type="test">
+                    <div class="item-icon test">🎯</div>
+                    <div class="item-content test">
+                        <div class="item-title">מבחן כפל</div>
+                        <div class="item-date">28 באוקטובר, 2024</div>
+                        <div class="item-description">הדגימו את כישורי הכפל שלכם עם עובדות ובעיות מילוליות!</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item assignment" data-type="assignment">
+                    <div class="item-icon assignment">✏️</div>
+                    <div class="item-content assignment">
+                        <div class="item-title">פרויקט כפל בחיים</div>
+                        <div class="item-date">מועד הגשה: 31 באוקטובר, 2024</div>
+                        <div class="item-description">מצאו דוגמאות לכפל בחיי היומיום - מתכונים, קניות ועוד!</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- נובמבר -->
+            <div class="month-section">
+                <div class="month-header">
+                    <div class="month-title">🦃 נובמבר - הרפתקאות חילוק!</div>
+                </div>
+
+                <div class="timeline-item lesson" data-type="lesson">
+                    <div class="item-icon lesson">📚</div>
+                    <div class="item-content lesson">
+                        <div class="item-title">מושגי חילוק ועובדות</div>
+                        <div class="item-date">4-8 בנובמבר, 2024</div>
+                        <div class="item-description">הבנת חילוק כחלוקה וחיסור חוזר.</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item assignment" data-type="assignment">
+                    <div class="item-icon assignment">✏️</div>
+                    <div class="item-content assignment">
+                        <div class="item-title">משחק חלוקה הוגנת</div>
+                        <div class="item-date">מועד הגשה: 11 בנובמבר, 2024</div>
+                        <div class="item-description">יצירת משחקים שמדגימים חלוקה שווה בין חברים!</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item lesson" data-type="lesson">
+                    <div class="item-icon lesson">📚</div>
+                    <div class="item-content lesson">
+                        <div class="item-title">חילוק עם שארית</div>
+                        <div class="item-date">12-15 בנובמבר, 2024</div>
+                        <div class="item-description">מה קורה כשהחילוק לא יוצא בדיוק? למידה על שאריות!</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item assignment" data-type="assignment">
+                    <div class="item-icon assignment">✏️</div>
+                    <div class="item-content assignment">
+                        <div class="item-title">בעיות סיפור בחילוק</div>
+                        <div class="item-date">מועד הגשה: 18 בנובמבר, 2024</div>
+                        <div class="item-description">פתרון בעיות מהחיים האמיתיים באמצעות אסטרטגיות חילוק!</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item lesson" data-type="lesson">
+                    <div class="item-icon lesson">📚</div>
+                    <div class="item-content lesson">
+                        <div class="item-title">שיטת החילוק הארוך</div>
+                        <div class="item-date">19-22 בנובמבר, 2024</div>
+                        <div class="item-description">תהליך שלב אחר שלב לחילוק מספרים רב-ספרתיים.</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item test" data-type="test">
+                    <div class="item-icon test">🎯</div>
+                    <div class="item-content test">
+                        <div class="item-title">מבחן חילוק</div>
+                        <div class="item-date">25 בנובמבר, 2024</div>
+                        <div class="item-description">בדיקת הבנה בחילוק פשוט ועם שארית!</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item assignment" data-type="assignment">
+                    <div class="item-icon assignment">✏️</div>
+                    <div class="item-content assignment">
+                        <div class="item-title">פרויקט ארגון מסיבה</div>
+                        <div class="item-date">מועד הגשה: 29 בנובמבר, 2024</div>
+                        <div class="item-description">תכננו מסיבה כיתתית עם חילוק של אוכל, משחקים ופעילויות!</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- דצמבר -->
+            <div class="month-section">
+                <div class="month-header">
+                    <div class="month-title">❄️ דצמבר - כיף עם שברים!</div>
+                </div>
+
+                <div class="timeline-item lesson" data-type="lesson">
+                    <div class="item-icon lesson">📚</div>
+                    <div class="item-content lesson">
+                        <div class="item-title">היכרות עם שברים</div>
+                        <div class="item-date">2-6 בדצמבר, 2024</div>
+                        <div class="item-description">הבנת חלקים של שלם ושברים שווים.</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item assignment" data-type="assignment" style="margin-bottom: 80px;">
+                    <div class="item-icon assignment">✏️</div>
+                    <div class="item-content assignment">
+                        <div class="item-title">יצירת ספר שברים</div>
+                        <div class="item-date">מועד הגשה: 9 בדצמבר, 2024</div>
+                        <div class="item-description">יצירת ספר אישי עם דוגמאות לשברים מהחיים!</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item lesson" data-type="lesson">
+                    <div class="item-icon lesson">📚</div>
+                    <div class="item-content lesson">
+                        <div class="item-title">השוואת שברים</div>
+                        <div class="item-date">10-13 בדצמבר, 2024</div>
+                        <div class="item-description">איך יודעים איזה שבר גדול יותר? טכניקות השוואה!</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item test" data-type="test">
+                    <div class="item-icon test">🎯</div>
+                    <div class="item-content test">
+                        <div class="item-title">מבחן אמצע שנה</div>
+                        <div class="item-date">16-17 בדצמבר, 2024</div>
+                        <div class="item-description">סקירה מקיפה של כל הנושאים שנלמדו עד כה!</div>
+                        <div class="item-details">
+                            <p><strong>ספר לימוד:</strong> "מתמטיקה לכיתה ד'" - פרקים 1-4</p>
+                            <p><strong>עמודים לחזרה:</strong> 12-103, 115-142, 158-175</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="timeline-item lesson" data-type="lesson">
+                    <div class="item-icon lesson">🎉</div>
+                    <div class="item-content lesson">
+                        <div class="item-title">חגיגת חנוכה מתמטית</div>
+                        <div class="item-date">18-20 בדצמבר, 2024</div>
+                        <div class="item-description">משחקים מתמטיים מיוחדים לחנוכה עם שברים וכפל!</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item assignment" data-type="assignment">
+                    <div class="item-icon assignment">✏️</div>
+                    <div class="item-content assignment">
+                        <div class="item-title">פרויקט חופשת חורף</div>
+                        <div class="item-date">מועד הגשה: 2 בינואר, 2025</div>
+                        <div class="item-description">תיעוד מתמטי של החופשה - זמנים, מרחקים ושברים!</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ינואר -->
+            <div class="month-section">
+                <div class="month-header">
+                    <div class="month-title">⛄ ינואר - פעולות עם שברים!</div>
+                </div>
+
+                <div class="timeline-item lesson" data-type="lesson">
+                    <div class="item-icon lesson">📚</div>
+                    <div class="item-content lesson">
+                        <div class="item-title">חזרה לשגרה עם שברים</div>
+                        <div class="item-date">5-9 בינואר, 2025</div>
+                        <div class="item-description">חזרה על שברים אחרי החופשה ותרגול זיהוי שברים.</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item lesson" data-type="lesson">
+                    <div class="item-icon lesson">📚</div>
+                    <div class="item-content lesson">
+                        <div class="item-title">חיבור וחיסור שברים</div>
+                        <div class="item-date">12-16 בינואר, 2025</div>
+                        <div class="item-description">לימוד חיבור וחיסור שברים עם מכנים זהים.</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item assignment" data-type="assignment">
+                    <div class="item-icon assignment">✏️</div>
+                    <div class="item-content assignment">
+                        <div class="item-title">מסיבת פיצה שברים</div>
+                        <div class="item-date">מועד הגשה: 20 בינואר, 2025</div>
+                        <div class="item-description">יצירת פיצות שברים ופתרון בעיות חלוקה!</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item lesson" data-type="lesson">
+                    <div class="item-icon lesson">📚</div>
+                    <div class="item-content lesson">
+                        <div class="item-title">שברים שווי ערך</div>
+                        <div class="item-date">21-25 בינואר, 2025</div>
+                        <div class="item-description">גילוי שברים שונים שמייצגים את אותו הערך!</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item test" data-type="test">
+                    <div class="item-icon test">🎯</div>
+                    <div class="item-content test">
+                        <div class="item-title">מבחן שברים</div>
+                        <div class="item-date">28 בינואר, 2025</div>
+                        <div class="item-description">בדיקת הבנה בזיהוי, השוואה וחיבור שברים!</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item assignment" data-type="assignment">
+                    <div class="item-icon assignment">✏️</div>
+                    <div class="item-content assignment">
+                        <div class="item-title">פרויקט מתכונים עם שברים</div>
+                        <div class="item-date">מועד הגשה: 31 בינואר, 2025</div>
+                        <div class="item-description">איסוף מתכונים משפחתיים והמרתם לשברים!</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- פברואר -->
+            <div class="month-section">
+                <div class="month-header">
+                    <div class="month-title">💝 פברואר - גילוי עשרוניים!</div>
+                </div>
+
+                <div class="timeline-item lesson" data-type="lesson">
+                    <div class="item-icon lesson">📚</div>
+                    <div class="item-content lesson">
+                        <div class="item-title">יסודות עשרוניים</div>
+                        <div class="item-date">2-6 בפברואר, 2025</div>
+                        <div class="item-description">הבנת עשיריות ומאיות עם סימון עשרוני.</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item assignment" data-type="assignment">
+                    <div class="item-icon assignment">✏️</div>
+                    <div class="item-content assignment">
+                        <div class="item-title">ציד אוצרות עשרוניים</div>
+                        <div class="item-date">מועד הגשה: 10 בפברואר, 2025</div>
+                        <div class="item-description">מצאו עשרוניים בחיי היומיום - מחירים, מדידות ועוד!</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item lesson" data-type="lesson">
+                    <div class="item-icon lesson">📚</div>
+                    <div class="item-content lesson">
+                        <div class="item-title">השוואת עשרוניים</div>
+                        <div class="item-date">11-15 בפברואר, 2025</div>
+                        <div class="item-description">איך משווים בין מספרים עשרוניים? כללים וטכניקות!</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item assignment" data-type="assignment">
+                    <div class="item-icon assignment">✏️</div>
+                    <div class="item-content assignment">
+                        <div class="item-title">פרויקט כסף ועשרוניים</div>
+                        <div class="item-date">מועד הגשה: 18 בפברואר, 2025</div>
+                        <div class="item-description">תרגול עשרוניים עם תרחישי כסף אמיתיים וקניות!</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item lesson" data-type="lesson">
+                    <div class="item-icon lesson">📚</div>
+                    <div class="item-content lesson">
+                        <div class="item-title">חיבור וחיסור עשרוניים</div>
+                        <div class="item-date">19-23 בפברואר, 2025</div>
+                        <div class="item-description">פעולות חשבון עם מספרים עשרוניים!</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item test" data-type="test">
+                    <div class="item-icon test">🎯</div>
+                    <div class="item-content test">
+                        <div class="item-title">מבחן שברים ועשרוניים</div>
+                        <div class="item-date">26 בפברואר, 2025</div>
+                        <div class="item-description">הראו את ההבנה שלכם בשברים ועשרוניים!</div>
+                        <div class="item-details">
+                            <p><strong>ספר לימוד:</strong> "מתמטיקה לכיתה ד'" - פרקים 5-6</p>
+                            <p><strong>עמודים לחזרה:</strong> 180-215, 225-248, 255-267</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="timeline-item assignment" data-type="assignment">
+                    <div class="item-icon assignment">✏️</div>
+                    <div class="item-content assignment">
+                        <div class="item-title">פרויקט ספורט ועשרוניים</div>
+                        <div class="item-date">מועד הגשה: 28 בפברואר, 2025</div>
+                        <div class="item-description">חקירת זמני ריצה, גבהים ומשקלים בספורט!</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- מרץ -->
+            <div class="month-section">
+                <div class="month-header">
+                    <div class="month-title">🌸 מרץ - חקר גיאומטריה!</div>
+                </div>
+
+                <div class="timeline-item lesson" data-type="lesson">
+                    <div class="item-icon lesson">📚</div>
+                    <div class="item-content lesson">
+                        <div class="item-title">צורות דו-ממדיות ותכונות</div>
+                        <div class="item-date">2-6 במרץ, 2025</div>
+                        <div class="item-description">חקירת משולשים, מרובעים והתכונות המיוחדות שלהם.</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item assignment" data-type="assignment">
+                    <div class="item-icon assignment">✏️</div>
+                    <div class="item-content assignment">
+                        <div class="item-title">יצירת גלריית צורות</div>
+                        <div class="item-date">מועד הגשה: 10 במרץ, 2025</div>
+                        <div class="item-description">יצירת גלריה אמנותית עם צורות גיאומטריות שונות!</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item lesson" data-type="lesson">
+                    <div class="item-icon lesson">📚</div>
+                    <div class="item-content lesson">
+                        <div class="item-title">זוויות וקווים</div>
+                        <div class="item-date">11-15 במרץ, 2025</div>
+                        <div class="item-description">הכרת סוגי זוויות וקווים - ישרים, מקבילים ומאונכים.</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item assignment" data-type="assignment">
+                    <div class="item-icon assignment">✏️</div>
+                    <div class="item-content assignment">
+                        <div class="item-title">ציד אוצרות צורות</div>
+                        <div class="item-date">מועד הגשה: 17 במרץ, 2025</div>
+                        <div class="item-description">מצאו צורות גיאומטריות בעולם האמיתי וסווגו אותן!</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item lesson" data-type="lesson">
+                    <div class="item-icon lesson">📚</div>
+                    <div class="item-content lesson">
+                        <div class="item-title">שטח והיקף</div>
+                        <div class="item-date">18-22 במרץ, 2025</div>
+                        <div class="item-description">חישוב שטח והיקף של מלבנים וריבועים.</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item assignment" data-type="assignment">
+                    <div class="item-icon assignment">✏️</div>
+                    <div class="item-content assignment">
+                        <div class="item-title">תכנון גן חלומות</div>
+                        <div class="item-date">מועד הגשה: 25 במרץ, 2025</div>
+                        <div class="item-description">תכננו גן עם חישובי שטח והיקף לאזורים שונים!</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item test" data-type="test">
+                    <div class="item-icon test">🎯</div>
+                    <div class="item-content test">
+                        <div class="item-title">מבחן גיאומטריה</div>
+                        <div class="item-date">28 במרץ, 2025</div>
+                        <div class="item-description">בדיקת הבנה בצורות, זוויות, שטח והיקף!</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item assignment" data-type="assignment">
+                    <div class="item-icon assignment">✏️</div>
+                    <div class="item-content assignment">
+                        <div class="item-title">פרויקט חופשת פסח</div>
+                        <div class="item-date">מועד הגשה: 31 במרץ, 2025</div>
+                        <div class="item-description">תיעוד גיאומטרי של החופשה - צורות, מדידות וחישובים!</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- אפריל -->
+            <div class="month-section">
+                <div class="month-header">
+                    <div class="month-title">🌷 אפריל - שליטה במדידה!</div>
+                </div>
+
+                <div class="timeline-item lesson" data-type="lesson">
+                    <div class="item-icon lesson">📚</div>
+                    <div class="item-content lesson">
+                        <div class="item-title">חזרה לשגרה עם מדידות</div>
+                        <div class="item-date">20-24 באפריל, 2025</div>
+                        <div class="item-description">חזרה אחרי חופשת פסח עם מדידות בסיסיות.</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item lesson" data-type="lesson">
+                    <div class="item-icon lesson">📚</div>
+                    <div class="item-content lesson">
+                        <div class="item-title">יחידות מדידה</div>
+                        <div class="item-date">27 באפריל - 1 במאי, 2025</div>
+                        <div class="item-description">לימוד יחידות אורך, משקל, נפח וטמפרטורה.</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item assignment" data-type="assignment">
+                    <div class="item-icon assignment">✏️</div>
+                    <div class="item-content assignment">
+                        <div class="item-title">פרויקט מדידות בבית</div>
+                        <div class="item-date">מועד הגשה: 5 במאי, 2025</div>
+                        <div class="item-description">מדדו חפצים שונים בבית ותעדו את התוצאות!</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item lesson" data-type="lesson">
+                    <div class="item-icon lesson">📚</div>
+                    <div class="item-content lesson">
+                        <div class="item-title">המרות יחידות</div>
+                        <div class="item-date">6-10 במאי, 2025</div>
+                        <div class="item-description">איך ממירים בין יחידות מדידה שונות?</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item assignment" data-type="assignment">
+                    <div class="item-icon assignment">✏️</div>
+                    <div class="item-content assignment">
+                        <div class="item-title">מעבדת מדידה</div>
+                        <div class="item-date">מועד הגשה: 12 במאי, 2025</div>
+                        <div class="item-description">פעילויות מדידה מעשיות ברחבי הכיתה!</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item lesson" data-type="lesson">
+                    <div class="item-icon lesson">📚</div>
+                    <div class="item-content lesson">
+                        <div class="item-title">זמן ולוח שנה</div>
+                        <div class="item-date">13-17 במאי, 2025</div>
+                        <div class="item-description">חישובי זמן, שעות, דקות ותאריכים.</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item test" data-type="test">
+                    <div class="item-icon test">🎯</div>
+                    <div class="item-content test">
+                        <div class="item-title">מבחן גיאומטריה ומדידה</div>
+                        <div class="item-date">20 במאי, 2025</div>
+                        <div class="item-description">יישמו את הידע שלכם על צורות, שטח ומדידה!</div>
+                        <div class="item-details">
+                            <p><strong>ספר לימוד:</strong> "מתמטיקה לכיתה ד'" - פרקים 7-8</p>
+                            <p><strong>עמודים לחזרה:</strong> 275-312, 320-345, 352-368</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- מאי -->
+            <div class="month-section">
+                <div class="month-header">
+                    <div class="month-title">🌻 מאי - נתונים וגרפים!</div>
+                </div>
+
+                <div class="timeline-item lesson" data-type="lesson">
+                    <div class="item-icon lesson">📚</div>
+                    <div class="item-content lesson">
+                        <div class="item-title">איסוף וניתוח נתונים</div>
+                        <div class="item-date">21-25 במאי, 2025</div>
+                        <div class="item-description">לימוד איסוף, ארגון ופרשנות נתונים.</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item assignment" data-type="assignment">
+                    <div class="item-icon assignment">✏️</div>
+                    <div class="item-content assignment">
+                        <div class="item-title">סקר משפחתי</div>
+                        <div class="item-date">מועד הגשה: 26 במאי, 2025</div>
+                        <div class="item-description">ערכו סקר במשפחה על נושא שמעניין אתכם!</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item lesson" data-type="lesson">
+                    <div class="item-icon lesson">📚</div>
+                    <div class="item-content lesson">
+                        <div class="item-title">יצירת גרפים</div>
+                        <div class="item-date">27-31 במאי, 2025</div>
+                        <div class="item-description">לימוד יצירת גרפי עמודות, קווים ועוגה.</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item assignment" data-type="assignment">
+                    <div class="item-icon assignment">✏️</div>
+                    <div class="item-content assignment">
+                        <div class="item-title">פרויקט סקר כיתתי</div>
+                        <div class="item-date">מועד הגשה: 2 ביוני, 2025</div>
+                        <div class="item-description">יצירת סקרים ויצירת גרפים להצגת הממצאים שלכם!</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item lesson" data-type="lesson">
+                    <div class="item-icon lesson">📚</div>
+                    <div class="item-content lesson">
+                        <div class="item-title">אסטרטגיות פתרון בעיות</div>
+                        <div class="item-date">3-7 ביוני, 2025</div>
+                        <div class="item-description">סקירת כל אסטרטגיות פתרון הבעיות שנלמדו השנה.</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item assignment" data-type="assignment">
+                    <div class="item-icon assignment">✏️</div>
+                    <div class="item-content assignment">
+                        <div class="item-title">אוסף בעיות מילוליות</div>
+                        <div class="item-date">מועד הגשה: 9 ביוני, 2025</div>
+                        <div class="item-description">יצירת אוסף בעיות מילוליות מהחיים האמיתיים!</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- יוני -->
+            <div class="month-section">
+                <div class="month-header">
+                    <div class="month-title">☀️ יוני - חגיגת סוף שנה!</div>
+                </div>
+
+                <div class="timeline-item lesson" data-type="lesson">
+                    <div class="item-icon lesson">📚</div>
+                    <div class="item-content lesson">
+                        <div class="item-title">חזרה כללית לקראת הסיכום</div>
+                        <div class="item-date">10-14 ביוני, 2025</div>
+                        <div class="item-description">חזרה על כל הנושאים הראשיים שנלמדו השנה.</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item test" data-type="test">
+                    <div class="item-icon test">🎯</div>
+                    <div class="item-content test">
+                        <div class="item-title">מבחן סיכום</div>
+                        <div class="item-date">15-16 ביוני, 2025</div>
+                        <div class="item-description">מבחן סיכום מקיף הכולל את כל נושאי השנה!</div>
+                        <div class="item-details">
+                            <p><strong>ספר לימוד:</strong> "מתמטיקה לכיתה ד'" - כל הפרקים</p>
+                            <p><strong>עמודים לחזרה:</strong> 12-368 (כל הספר), דגש על עמודים 50-67, 95-103, 180-215, 275-312</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="timeline-item assignment" data-type="assignment">
+                    <div class="item-icon assignment">✏️</div>
+                    <div class="item-content assignment">
+                        <div class="item-title">רפלקציה על תיק מתמטיקה</div>
+                        <div class="item-date">מועד הגשה: 17 ביוני, 2025</div>
+                        <div class="item-description">יצירת תיק המציג את עבודות המתמטיקה הטובות ביותר שלכם מהשנה!</div>
+                    </div>
+                </div>
+
+                <div class="timeline-item lesson" data-type="lesson">
+                    <div class="item-icon lesson">🎉</div>
+                    <div class="item-content lesson">
+                        <div class="item-title">יום חגיגת המתמטיקה!</div>
+                        <div class="item-date">17 ביוני, 2025</div>
+                        <div class="item-description">חגיגה של כל ההישגים המתמטיים המדהימים שלכם השנה!</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Current date highlighting
+        const currentDate = new Date('2024-12-09');
+
+        // Calculate today marker position dynamically
+        function calculateTodayMarkerPosition() {
+            const todayMarker = document.querySelector('.today-timeline-marker');
+            if (!todayMarker) return;
+            
+            // Find the specific assignment that ends on December 9th
+            const targetAssignment = Array.from(document.querySelectorAll('.timeline-item')).find(item => {
+                const dateText = item.querySelector('.item-date').textContent;
+                return dateText.includes('9 בדצמבר, 2024');
+            });
+            
+            if (targetAssignment) {
+                // Position the marker right after this assignment
+                const assignmentRect = targetAssignment.getBoundingClientRect();
+                const timelineRect = document.querySelector('.timeline').getBoundingClientRect();
+                
+                // Calculate position relative to timeline container
+                const relativeTop = assignmentRect.bottom - timelineRect.top + 20;
+                todayMarker.style.top = relativeTop + 'px';
+            } else {
+                // Fallback: position in December section
+                const decemberSection = Array.from(document.querySelectorAll('.month-title')).find(title => 
+                    title.textContent.includes('דצמבר')
+                );
+                
+                if (decemberSection) {
+                    const sectionRect = decemberSection.getBoundingClientRect();
+                    const timelineRect = document.querySelector('.timeline').getBoundingClientRect();
+                    const relativeTop = sectionRect.bottom - timelineRect.top + 150;
+                    todayMarker.style.top = relativeTop + 'px';
+                }
+            }
+        }
+
+        // Calculate position on load and resize
+        window.addEventListener('load', calculateTodayMarkerPosition);
+        window.addEventListener('resize', calculateTodayMarkerPosition);
+
+        // Filter functionality
+        function filterItems(type) {
+            const items = document.querySelectorAll('.timeline-item');
+            const buttons = document.querySelectorAll('.filter-btn');
+            
+            // Update active button
+            buttons.forEach(btn => btn.classList.remove('active'));
+            
+            // Find and activate the correct button
+            if (type === 'all') {
+                document.querySelector('.filter-btn.all').classList.add('active');
+            } else if (type === 'lesson') {
+                document.querySelector('.filter-btn.lessons').classList.add('active');
+            } else if (type === 'assignment') {
+                document.querySelector('.filter-btn.assignments').classList.add('active');
+            } else if (type === 'test') {
+                document.querySelector('.filter-btn.tests').classList.add('active');
+            }
+            
+            // Show/hide items
+            items.forEach(item => {
+                const itemType = item.getAttribute('data-type');
+                if (type === 'all' || itemType === type) {
+                    item.classList.remove('hidden');
+                } else {
+                    item.classList.add('hidden');
+                }
+            });
+            
+            // Recalculate today marker position after filtering
+            setTimeout(calculateTodayMarkerPosition, 100);
+        }
+
+        // Click to expand details
+        document.querySelectorAll('.item-content').forEach(item => {
+            item.addEventListener('click', function() {
+                const details = this.querySelector('.item-details');
+                if (details) {
+                    details.classList.toggle('expanded');
+                    // Recalculate today marker position after expanding/collapsing
+                    setTimeout(calculateTodayMarkerPosition, 300);
+                }
+            });
+        });
+
+        // Add hover effects for timeline items
+        document.querySelectorAll('.timeline-item').forEach(item => {
+            item.addEventListener('mouseenter', function() {
+                this.style.transform = 'scale(1.02)';
+            });
+            
+            item.addEventListener('mouseleave', function() {
+                this.style.transform = 'scale(1)';
+            });
+        });
+
+
+
+        // Add some fun interactions
+        document.querySelectorAll('.item-icon').forEach(icon => {
+            icon.addEventListener('click', function(e) {
+                e.stopPropagation();
+                this.style.transform = 'translateX(50%) scale(1.3)';
+                setTimeout(() => {
+                    this.style.transform = 'translateX(50%) scale(1)';
+                }, 200);
+            });
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97b0b85477d84476',t:'MTc1NzE5MDU4Mi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
