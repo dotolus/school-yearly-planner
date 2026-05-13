@@ -320,7 +320,7 @@
         <div class="current-date-indicator">
             <div class="today-marker">
                 <span class="today-icon">📅</span>
-                <span class="today-text">היום: 9 בדצמבר, 2024</span>
+                <span class="today-text"></span>
             </div>
         </div>
 
@@ -345,35 +345,37 @@
     <script src="data/reut-2025_2026-d5.js"></script>
     <script>
         // Current date highlighting
-        const currentDate = new Date('2024-12-09');
+        const currentDate = new Date();
+
+        const hebrewDateOptions = { day: 'numeric', month: 'long', year: 'numeric' };
+        document.querySelector('.today-text').textContent =
+            'היום: ' + currentDate.toLocaleDateString('he-IL', hebrewDateOptions);
 
         // Calculate today marker position dynamically
         function calculateTodayMarkerPosition() {
             const todayMarker = document.querySelector('.today-timeline-marker');
             if (!todayMarker) return;
-            
-            // Find the specific assignment that ends on December 9th
+
+            const todayString = currentDate.toLocaleDateString('he-IL', hebrewDateOptions);
+            const currentMonthName = currentDate.toLocaleDateString('he-IL', { month: 'long' });
+
             const targetAssignment = Array.from(document.querySelectorAll('.timeline-item')).find(item => {
                 const dateText = item.querySelector('.item-date').textContent;
-                return dateText.includes('9 בדצמבר, 2024');
+                return dateText.includes(todayString);
             });
-            
+
             if (targetAssignment) {
-                // Position the marker right after this assignment
                 const assignmentRect = targetAssignment.getBoundingClientRect();
                 const timelineRect = document.querySelector('.timeline').getBoundingClientRect();
-                
-                // Calculate position relative to timeline container
                 const relativeTop = assignmentRect.bottom - timelineRect.top + 20;
                 todayMarker.style.top = relativeTop + 'px';
             } else {
-                // Fallback: position in December section
-                const decemberSection = Array.from(document.querySelectorAll('.month-title')).find(title => 
-                    title.textContent.includes('דצמבר')
+                const currentMonthSection = Array.from(document.querySelectorAll('.month-title')).find(title =>
+                    title.textContent.includes(currentMonthName)
                 );
-                
-                if (decemberSection) {
-                    const sectionRect = decemberSection.getBoundingClientRect();
+
+                if (currentMonthSection) {
+                    const sectionRect = currentMonthSection.getBoundingClientRect();
                     const timelineRect = document.querySelector('.timeline').getBoundingClientRect();
                     const relativeTop = sectionRect.bottom - timelineRect.top + 150;
                     todayMarker.style.top = relativeTop + 'px';
@@ -381,8 +383,50 @@
             }
         }
 
+        function scrollToTodayWithBounce() {
+            const marker = document.querySelector('.today-timeline-marker');
+            if (!marker) return;
+
+            const markerTop = marker.getBoundingClientRect().top + window.scrollY;
+            const targetY = markerTop - window.innerHeight / 2;
+            const overshootY = targetY + 180;
+            const duration = 4700;
+            const overshootFraction = 0.72; // 0–1: when overshoot peak happens
+            let start = null;
+
+            function easeInOutCubic(t) {
+                return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+            }
+
+            function step(timestamp) {
+                if (!start) start = timestamp;
+                const elapsed = timestamp - start;
+                const t = Math.min(elapsed / duration, 1);
+
+                let y;
+                if (t < overshootFraction) {
+                    // Phase 1: scroll to overshoot position
+                    const p = easeInOutCubic(t / overshootFraction);
+                    y = p * overshootY;
+                } else {
+                    // Phase 2: bounce back to target
+                    const p = easeInOutCubic((t - overshootFraction) / (1 - overshootFraction));
+                    y = overshootY + p * (targetY - overshootY);
+                }
+
+                window.scrollTo(0, y);
+                if (t < 1) requestAnimationFrame(step);
+            }
+
+            // Small delay so the page has painted before scrolling
+            setTimeout(() => requestAnimationFrame(step), 300);
+        }
+
         // Calculate position on load and resize
-        window.addEventListener('load', calculateTodayMarkerPosition);
+        window.addEventListener('load', () => {
+            calculateTodayMarkerPosition();
+            scrollToTodayWithBounce();
+        });
         window.addEventListener('resize', calculateTodayMarkerPosition);
 
         // Filter functionality
