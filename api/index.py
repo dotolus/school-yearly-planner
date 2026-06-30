@@ -2,6 +2,9 @@ import os
 import pathlib
 from typing import Optional
 
+from dotenv import load_dotenv
+load_dotenv(pathlib.Path(__file__).parent.parent / ".env")
+
 from fastapi import FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse

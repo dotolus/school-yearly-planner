@@ -2,3 +2,5 @@ fastapi
 mangum
 supabase
 pydantic
+uvicorn
+python-dotenv
