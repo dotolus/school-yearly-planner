@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ניהול לוחות זמנים</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Arial', 'Segoe UI', sans-serif;
+            background: #f0f2f5;
+            min-height: 100vh;
+            direction: rtl;
+        }
+
+        /* ── Top bar ── */
+        .topbar {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 16px 28px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+        }
+
+        .topbar h1 { font-size: 1.4rem; }
+
+        .topbar-actions { display: flex; gap: 12px; align-items: center; }
+
+        .user-email { font-size: 0.9rem; opacity: 0.85; }
+
+        /* ── Buttons ── */
+        .btn {
+            padding: 9px 18px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .btn-primary { background: #667eea; color: white; }
+        .btn-primary:hover { background: #5a6fd8; }
+        .btn-danger  { background: #ff6b6b; color: white; }
+        .btn-danger:hover  { background: #e55959; }
+        .btn-secondary { background: #dfe6e9; color: #2d3436; }
+        .btn-secondary:hover { background: #b2bec3; }
+        .btn-sm { padding: 5px 12px; font-size: 0.8rem; }
+        .btn-logout { background: rgba(255,255,255,0.2); color: white; padding: 7px 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.4); cursor: pointer; }
+        .btn-logout:hover { background: rgba(255,255,255,0.35); }
+
+        /* ── Layout ── */
+        .main { display: flex; min-height: calc(100vh - 57px); }
+
+        .sidebar {
+            width: 260px;
+            background: white;
+            border-left: 1px solid #e0e0e0;
+            padding: 20px;
+            flex-shrink: 0;
+        }
+
+        .sidebar h2 { font-size: 1rem; color: #636e72; margin-bottom: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        .grade-btn {
+            width: 100%;
+            text-align: right;
+            padding: 12px 14px;
+            background: #f8f9fa;
+            border: 2px solid transparent;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-bottom: 8px;
+            transition: all 0.2s;
+            font-size: 0.95rem;
+        }
+
+        .grade-btn:hover  { background: #e9ecef; }
+        .grade-btn.active { background: #eef0ff; border-color: #667eea; color: #667eea; font-weight: bold; }
+
+        .grade-key-badge { font-weight: bold; font-size: 1.1rem; display: block; }
+        .grade-name-small { font-size: 0.8rem; color: #636e72; }
+
+        /* ── Content ── */
+        .content { flex: 1; padding: 28px; overflow-y: auto; }
+
+        .content-placeholder { text-align: center; color: #b2bec3; padding: 80px 20px; font-size: 1.1rem; }
+
+        /* ── Month block ── */
+        .month-block { background: white; border-radius: 14px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); overflow: hidden; }
+
+        .month-block-header {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 14px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+        }
+
+        .items-table { width: 100%; border-collapse: collapse; }
+        .items-table th { background: #f8f9fa; padding: 10px 16px; text-align: right; font-size: 0.85rem; color: #636e72; border-bottom: 1px solid #e9ecef; }
+        .items-table td { padding: 10px 16px; border-bottom: 1px solid #f1f1f1; font-size: 0.9rem; vertical-align: middle; }
+        .items-table tr:last-child td { border-bottom: none; }
+        .items-table tr:hover td { background: #fafbff; }
+
+        .type-badge {
+            display: inline-block;
+            padding: 3px 9px;
+            border-radius: 12px;
+            font-size: 0.78rem;
+            font-weight: bold;
+        }
+
+        .type-badge.lesson     { background: #dfe9ff; color: #2c5eda; }
+        .type-badge.assignment { background: #ffe0ec; color: #cc1f6e; }
+        .type-badge.test       { background: #fff3d0; color: #a37a00; }
+
+        .item-actions { display: flex; gap: 6px; }
+
+        /* ── Modal ── */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.45);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.open { display: flex; }
+
+        .modal {
+            background: white;
+            border-radius: 16px;
+            padding: 28px;
+            width: 540px;
+            max-width: 95vw;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+        }
+
+        .modal h2 { margin-bottom: 20px; font-size: 1.3rem; color: #2d3436; }
+
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 0.85rem; font-weight: bold; color: #636e72; margin-bottom: 6px; }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            transition: border-color 0.2s;
+            direction: rtl;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus { outline: none; border-color: #667eea; }
+
+        .form-group textarea { height: 80px; resize: vertical; }
+
+        .modal-actions { display: flex; gap: 10px; justify-content: flex-start; margin-top: 24px; }
+
+        /* ── Login ── */
+        #login-section {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .login-box {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            width: 380px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.12);
+            text-align: center;
+        }
+
+        .login-box h1 { font-size: 1.8rem; margin-bottom: 8px; color: #2d3436; }
+        .login-box p  { color: #636e72; margin-bottom: 28px; }
+
+        .login-box input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 1rem;
+            margin-bottom: 12px;
+            direction: ltr;
+            text-align: left;
+        }
+
+        .login-box input:focus { outline: none; border-color: #667eea; }
+        .login-box .btn-primary { width: 100%; padding: 13px; font-size: 1rem; border-radius: 10px; }
+
+        .error-msg { color: #ff6b6b; font-size: 0.9rem; margin-top: 12px; min-height: 20px; }
+
+        /* ── Grade form ── */
+        .new-grade-section { background: white; border-radius: 14px; padding: 22px; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
+        .new-grade-section h3 { margin-bottom: 16px; color: #2d3436; }
+        .inline-form { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+        .inline-form .form-group { flex: 1; min-width: 120px; margin-bottom: 0; }
+    </style>
+</head>
+<body>
+
+<!-- Login -->
+<div id="login-section">
+    <div class="login-box">
+        <h1>🔐 כניסה</h1>
+        <p>ניהול לוחות זמנים שנתיים</p>
+        <form id="login-form">
+            <input type="email"    id="email"    placeholder="כתובת אימייל" required autocomplete="email">
+            <input type="password" id="password" placeholder="סיסמה"        required autocomplete="current-password">
+            <button type="submit" class="btn btn-primary">כניסה</button>
+            <div class="error-msg" id="login-error"></div>
+        </form>
+    </div>
+</div>
+
+<!-- Admin UI -->
+<div id="admin-section" style="display:none">
+    <div class="topbar">
+        <h1>📅 ניהול לוחות זמנים</h1>
+        <div class="topbar-actions">
+            <span class="user-email" id="user-email"></span>
+            <button class="btn-logout" onclick="logout()">יציאה</button>
+        </div>
+    </div>
+
+    <div class="main">
+        <div class="sidebar">
+            <h2>הכיתות שלי</h2>
+            <div id="grades-nav"></div>
+        </div>
+        <div class="content" id="content">
+            <div class="content-placeholder">בחרו כיתה מהרשימה כדי לנהל את הפריטים שלה</div>
+        </div>
+    </div>
+</div>
+
+<!-- Item modal -->
+<div class="modal-overlay" id="item-modal">
+    <div class="modal">
+        <h2 id="modal-title">הוסף פריט</h2>
+        <input type="hidden" id="item-id">
+        <input type="hidden" id="item-month-id">
+        <input type="hidden" id="item-grade-key">
+
+        <div class="form-group">
+            <label>חודש</label>
+            <select id="item-month-select"></select>
+        </div>
+        <div class="form-group">
+            <label>סוג</label>
+            <select id="item-type">
+                <option value="lesson">שיעור</option>
+                <option value="assignment">מטלה</option>
+                <option value="test">מבחן</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>כותרת</label>
+            <input type="text" id="item-title" placeholder="שם הפריט">
+        </div>
+        <div class="form-group">
+            <label>תאריך (טקסט להצגה)</label>
+            <input type="text" id="item-date-text" placeholder="לדוגמה: 5 בספטמבר, 2025">
+        </div>
+        <div class="form-group">
+            <label>תאריך (ISO, אופציונלי)</label>
+            <input type="date" id="item-date-actual" style="direction:ltr;text-align:left">
+        </div>
+        <div class="form-group">
+            <label>תיאור</label>
+            <textarea id="item-description" placeholder="תיאור קצר..."></textarea>
+        </div>
+        <div class="form-group">
+            <label>פרטים נוספים (HTML, אופציונלי)</label>
+            <textarea id="item-details" placeholder="<p>תוכן מורחב...</p>"></textarea>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-primary" onclick="saveItem()">שמור</button>
+            <button class="btn btn-secondary" onclick="closeModal()">ביטול</button>
+            <div class="error-msg" id="modal-error"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let supabaseClient;
+    let currentToken;
+    let currentEmail;
+    let selectedGradeKey = null;
+    let gradeAdminData   = null;
+
+    // ── Init ──────────────────────────────────────────────────────────────────
+
+    async function init() {
+        const configResp = await fetch('/api/config');
+        const config     = await configResp.json();
+        supabaseClient   = window.supabase.createClient(config.supabase_url, config.supabase_anon_key);
+
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (session) {
+            currentToken = session.access_token;
+            currentEmail = session.user.email;
+            showAdmin();
+        }
+    }
+
+    // ── Auth ──────────────────────────────────────────────────────────────────
+
+    document.getElementById('login-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        document.getElementById('login-error').textContent = '';
+        const { data, error } = await supabaseClient.auth.signInWithPassword({
+            email:    document.getElementById('email').value,
+            password: document.getElementById('password').value,
+        });
+        if (error) { document.getElementById('login-error').textContent = error.message; return; }
+        currentToken = data.session.access_token;
+        currentEmail = data.user.email;
+        showAdmin();
+    });
+
+    async function logout() {
+        await supabaseClient.auth.signOut();
+        location.reload();
+    }
+
+    // ── Admin UI ──────────────────────────────────────────────────────────────
+
+    async function showAdmin() {
+        document.getElementById('login-section').style.display  = 'none';
+        document.getElementById('admin-section').style.display  = 'block';
+        document.getElementById('user-email').textContent       = currentEmail;
+        await loadGradesList();
+    }
+
+    async function loadGradesList() {
+        const grades = await apiGet('/api/admin/my-grades');
+        const nav    = document.getElementById('grades-nav');
+        nav.innerHTML = '';
+        grades.forEach(function(g) {
+            const btn = document.createElement('button');
+            btn.className = 'grade-btn';
+            btn.innerHTML =
+                '<span class="grade-key-badge">' + g.grade_key + '</span>' +
+                '<span class="grade-name-small">' + (g.title || '') + '</span>';
+            btn.onclick = () => selectGrade(g.grade_key, btn);
+            nav.appendChild(btn);
+        });
+    }
+
+    async function selectGrade(gradeKey, btn) {
+        document.querySelectorAll('.grade-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedGradeKey = gradeKey;
+
+        document.getElementById('content').innerHTML = '<div class="content-placeholder">טוען...</div>';
+        gradeAdminData = await apiGet('/api/admin/grades/' + gradeKey);
+        renderGradeEditor();
+    }
+
+    function renderGradeEditor() {
+        const g   = gradeAdminData;
+        const html = g.months.map(function(month) {
+            const itemRows = month.items.map(function(item) {
+                return '<tr>' +
+                    '<td><span class="type-badge ' + item.type + '">' + typeLabel(item.type) + '</span></td>' +
+                    '<td>' + escHtml(item.title) + '</td>' +
+                    '<td>' + escHtml(item.date_text) + '</td>' +
+                    '<td class="item-actions">' +
+                        '<button class="btn btn-secondary btn-sm" onclick="openEditItem(\'' + item.id + '\')">עריכה</button>' +
+                        '<button class="btn btn-danger btn-sm" onclick="confirmDeleteItem(\'' + item.id + '\', \'' + escHtml(item.title) + '\')">מחיקה</button>' +
+                    '</td>' +
+                '</tr>';
+            }).join('');
+
+            return '<div class="month-block">' +
+                '<div class="month-block-header">' +
+                    '<span>' + escHtml(month.month_title) + '</span>' +
+                    '<button class="btn btn-secondary btn-sm" onclick="openAddItem(\'' + month.id + '\')">+ הוסף פריט</button>' +
+                '</div>' +
+                '<table class="items-table">' +
+                    '<thead><tr><th>סוג</th><th>כותרת</th><th>תאריך</th><th>פעולות</th></tr></thead>' +
+                    '<tbody>' + (itemRows || '<tr><td colspan="4" style="text-align:center;color:#b2bec3;padding:20px">אין פריטים עדיין</td></tr>') + '</tbody>' +
+                '</table>' +
+            '</div>';
+        }).join('');
+
+        document.getElementById('content').innerHTML =
+            '<h2 style="margin-bottom:24px;color:#2d3436;">' + escHtml(g.title) + ' — ' + escHtml(g.grade_key) + '</h2>' +
+            html;
+    }
+
+    // ── Item modal ────────────────────────────────────────────────────────────
+
+    function openAddItem(monthId) {
+        resetModal();
+        document.getElementById('modal-title').textContent   = 'הוסף פריט';
+        document.getElementById('item-month-id').value       = monthId;
+        document.getElementById('item-grade-key').value      = selectedGradeKey;
+        populateMonthSelect(monthId);
+        document.getElementById('item-modal').classList.add('open');
+    }
+
+    function openEditItem(itemId) {
+        const item = findItemById(itemId);
+        if (!item) return;
+        resetModal();
+        document.getElementById('modal-title').textContent   = 'עריכת פריט';
+        document.getElementById('item-id').value             = item.id;
+        document.getElementById('item-grade-key').value      = selectedGradeKey;
+        document.getElementById('item-type').value           = item.type;
+        document.getElementById('item-title').value          = item.title;
+        document.getElementById('item-date-text').value      = item.date_text;
+        document.getElementById('item-date-actual').value    = item.date_actual || '';
+        document.getElementById('item-description').value    = item.description || '';
+        document.getElementById('item-details').value        = item.details || '';
+        populateMonthSelect(item.month_id);
+        document.getElementById('item-modal').classList.add('open');
+    }
+
+    function closeModal() {
+        document.getElementById('item-modal').classList.remove('open');
+    }
+
+    function resetModal() {
+        ['item-id','item-month-id','item-grade-key','item-date-actual','item-details'].forEach(id => {
+            document.getElementById(id).value = '';
+        });
+        document.getElementById('item-type').value        = 'lesson';
+        document.getElementById('item-title').value       = '';
+        document.getElementById('item-date-text').value   = '';
+        document.getElementById('item-description').value = '';
+        document.getElementById('modal-error').textContent = '';
+    }
+
+    function populateMonthSelect(selectedMonthId) {
+        const sel = document.getElementById('item-month-select');
+        sel.innerHTML = '';
+        gradeAdminData.months.forEach(function(m) {
+            const opt      = document.createElement('option');
+            opt.value      = m.id;
+            opt.textContent = m.month_title;
+            if (m.id === selectedMonthId) opt.selected = true;
+            sel.appendChild(opt);
+        });
+    }
+
+    async function saveItem() {
+        document.getElementById('modal-error').textContent = '';
+        const itemId    = document.getElementById('item-id').value;
+        const gradeKey  = document.getElementById('item-grade-key').value;
+        const monthId   = document.getElementById('item-month-select').value;
+        const body = {
+            month_id:    monthId,
+            type:        document.getElementById('item-type').value,
+            title:       document.getElementById('item-title').value.trim(),
+            date_text:   document.getElementById('item-date-text').value.trim(),
+            date_actual: document.getElementById('item-date-actual').value || null,
+            description: document.getElementById('item-description').value.trim(),
+            details:     document.getElementById('item-details').value.trim() || null,
+        };
+
+        if (!body.title || !body.date_text) {
+            document.getElementById('modal-error').textContent = 'יש למלא כותרת ותאריך';
+            return;
+        }
+
+        try {
+            if (itemId) {
+                await apiPut('/api/admin/items/' + itemId, body);
+            } else {
+                await apiPost('/api/admin/grades/' + gradeKey + '/items', body);
+            }
+            closeModal();
+            gradeAdminData = await apiGet('/api/admin/grades/' + gradeKey);
+            renderGradeEditor();
+        } catch (err) {
+            document.getElementById('modal-error').textContent = err.message;
+        }
+    }
+
+    async function confirmDeleteItem(itemId, title) {
+        if (!confirm('למחוק את הפריט "' + title + '"?')) return;
+        try {
+            await apiDelete('/api/admin/items/' + itemId);
+            gradeAdminData = await apiGet('/api/admin/grades/' + selectedGradeKey);
+            renderGradeEditor();
+        } catch (err) {
+            alert('שגיאה: ' + err.message);
+        }
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    function findItemById(itemId) {
+        for (const month of gradeAdminData.months) {
+            const item = month.items.find(i => i.id === itemId);
+            if (item) return item;
+        }
+        return null;
+    }
+
+    function typeLabel(type) {
+        return { lesson: 'שיעור', assignment: 'מטלה', test: 'מבחן' }[type] || type;
+    }
+
+    function escHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function authHeaders() {
+        return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + currentToken };
+    }
+
+    async function apiGet(url) {
+        const r = await fetch(url, { headers: authHeaders() });
+        if (!r.ok) throw new Error((await r.json()).detail || r.status);
+        return r.json();
+    }
+
+    async function apiPost(url, body) {
+        const r = await fetch(url, { method: 'POST', headers: authHeaders(), body: JSON.stringify(body) });
+        if (!r.ok) throw new Error((await r.json()).detail || r.status);
+        return r.json();
+    }
+
+    async function apiPut(url, body) {
+        const r = await fetch(url, { method: 'PUT', headers: authHeaders(), body: JSON.stringify(body) });
+        if (!r.ok) throw new Error((await r.json()).detail || r.status);
+        return r.json();
+    }
+
+    async function apiDelete(url) {
+        const r = await fetch(url, { method: 'DELETE', headers: authHeaders() });
+        if (!r.ok) throw new Error((await r.json()).detail || r.status);
+        return r.json();
+    }
+
+    // close modal on overlay click
+    document.getElementById('item-modal').addEventListener('click', function(e) {
+        if (e.target === this) closeModal();
+    });
+
+    init();
+</script>
+</body>
+</html>

@@ -1,0 +1,3 @@
+supabase
+json5
+python-dotenv

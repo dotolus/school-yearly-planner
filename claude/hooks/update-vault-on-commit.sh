@@ -21,7 +21,7 @@ if ! echo "$command" | grep -qE "git\s+commit"; then
   exit 0
 fi
 
-VAULT="claude/vault/school-timeline-vault"
+VAULT="vault/school-timeline-vault"
 
 # Collect staged source documentation files
 staged_sources=()

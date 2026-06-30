@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>לוחות זמנים שנתיים</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Arial', 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+            direction: rtl;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .page-header {
+            text-align: center;
+            color: white;
+            margin-bottom: 50px;
+        }
+
+        .page-header h1 {
+            font-size: 3rem;
+            margin-bottom: 12px;
+            text-shadow: 2px 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .page-header p {
+            font-size: 1.3rem;
+            opacity: 0.85;
+        }
+
+        .grades-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 24px;
+        }
+
+        .grade-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px 24px;
+            text-decoration: none;
+            color: inherit;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            transition: all 0.3s ease;
+            display: block;
+            border-top: 6px solid #667eea;
+        }
+
+        .grade-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+
+        .grade-card:nth-child(2n)   { border-top-color: #ff6b6b; }
+        .grade-card:nth-child(3n)   { border-top-color: #feca57; }
+        .grade-card:nth-child(4n)   { border-top-color: #fd79a8; }
+
+        .grade-key {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 8px;
+        }
+
+        .grade-card:nth-child(2n) .grade-key { color: #ff6b6b; }
+        .grade-card:nth-child(3n) .grade-key { color: #e17055; }
+        .grade-card:nth-child(4n) .grade-key { color: #fd79a8; }
+
+        .grade-title { font-size: 1.1rem; font-weight: bold; color: #2d3436; margin-bottom: 6px; }
+        .grade-year  { font-size: 0.9rem; color: #636e72; }
+
+        .loading {
+            text-align: center;
+            color: white;
+            font-size: 1.3rem;
+            padding: 60px;
+        }
+
+        .admin-link {
+            text-align: center;
+            margin-top: 50px;
+        }
+
+        .admin-link a {
+            color: rgba(255,255,255,0.7);
+            text-decoration: none;
+            font-size: 0.9rem;
+            border-bottom: 1px solid rgba(255,255,255,0.4);
+            padding-bottom: 2px;
+            transition: color 0.2s;
+        }
+
+        .admin-link a:hover { color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="page-header">
+            <h1>📅 לוחות זמנים שנתיים</h1>
+            <p>בחרו כיתה לצפייה בלוח הזמנים</p>
+        </div>
+
+        <div id="grades-container" class="loading">טוען כיתות...</div>
+
+        <div class="admin-link">
+            <a href="/admin">כניסה לניהול</a>
+        </div>
+    </div>
+
+    <script>
+        (async function() {
+            const container = document.getElementById('grades-container');
+            try {
+                const resp   = await fetch('/api/grades');
+                const grades = await resp.json();
+
+                if (!grades.length) {
+                    container.textContent = 'אין כיתות עדיין. כנסו לניהול כדי להוסיף.';
+                    container.style.color = 'white';
+                    return;
+                }
+
+                container.className = 'grades-grid';
+                container.innerHTML = '';
+
+                grades.forEach(function(grade) {
+                    const card       = document.createElement('a');
+                    card.href        = '/grade/' + grade.grade_key;
+                    card.className   = 'grade-card';
+                    card.innerHTML   =
+                        '<div class="grade-key">' + grade.grade_key + '</div>' +
+                        '<div class="grade-title">' + grade.title + '</div>' +
+                        '<div class="grade-year">' + grade.school_year + '</div>';
+                    container.appendChild(card);
+                });
+            } catch (err) {
+                container.textContent = 'שגיאה בטעינה: ' + err.message;
+                container.style.color = 'white';
+            }
+        })();
+    </script>
+</body>
+</html>

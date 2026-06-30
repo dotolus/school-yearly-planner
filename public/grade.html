@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>לוח זמנים</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Arial', 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            direction: rtl;
+        }
+
+        .timeline-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(45deg, #ff6b6b, #feca57);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 { font-size: 2.5rem; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
+        .header p  { font-size: 1.2rem; opacity: 0.9; }
+
+        .current-date-indicator {
+            padding: 15px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            text-align: center;
+        }
+
+        .today-marker {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255,255,255,0.95);
+            padding: 12px 25px;
+            border-radius: 30px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+            animation: todayPulse 3s infinite;
+        }
+
+        .today-icon { font-size: 1.2rem; }
+        .today-text { font-weight: bold; color: #2d3436; font-size: 1.1rem; }
+
+        @keyframes todayPulse {
+            0%,100% { transform: scale(1); box-shadow: 0 5px 20px rgba(0,0,0,0.15); }
+            50%      { transform: scale(1.02); box-shadow: 0 8px 25px rgba(102,126,234,0.3); }
+        }
+
+        .controls {
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .filter-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .filter-btn.active { transform: scale(1.05); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        .filter-btn.lessons     { background: #74b9ff; color: white; }
+        .filter-btn.assignments { background: #fd79a8; color: white; }
+        .filter-btn.tests       { background: #fdcb6e; color: white; }
+        .filter-btn.all         { background: #00b894; color: white; }
+
+        .timeline {
+            padding: 40px 20px;
+            position: relative;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            right: 50%;
+            top: 80px;
+            bottom: 0;
+            width: 4px;
+            background: linear-gradient(to bottom, #ff6b6b, #feca57, #74b9ff, #fd79a8);
+            transform: translateX(50%);
+        }
+
+        .today-timeline-marker {
+            position: absolute;
+            right: 50%;
+            transform: translateX(50%);
+            z-index: 25;
+        }
+
+        .today-marker-circle {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(45deg, #ff6b6b, #feca57);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 0 6px rgba(255,107,107,0.3), 0 0 0 12px rgba(255,107,107,0.15);
+            animation: todayMarkerPulse 2s infinite;
+            border: 3px solid white;
+        }
+
+        .today-marker-text { color: white; font-weight: bold; font-size: 11px; text-align: center; line-height: 1; }
+
+        @keyframes todayMarkerPulse {
+            0%,100% { transform: translateX(50%) scale(1);   box-shadow: 0 0 0 8px rgba(255,107,107,0.2), 0 0 0 16px rgba(255,107,107,0.1); }
+            50%      { transform: translateX(50%) scale(1.1); box-shadow: 0 0 0 12px rgba(255,107,107,0.3), 0 0 0 24px rgba(255,107,107,0.15); }
+        }
+
+        .month-section { margin-bottom: 60px; position: relative; }
+
+        .month-header { text-align: center; margin-bottom: 30px; position: relative; z-index: 20; }
+
+        .month-title {
+            display: inline-block;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 30px;
+            transition: all 0.5s ease;
+        }
+
+        .timeline-item.hidden { display: none; }
+
+        .timeline-item:nth-child(odd)  .item-content { margin-right: calc(50% + 30px); }
+        .timeline-item:nth-child(even) .item-content { margin-left: calc(50% + 30px); text-align: left; }
+
+        .item-content {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-right: 5px solid;
+        }
+
+        .item-content:hover { transform: translateY(-5px); box-shadow: 0 15px 35px rgba(0,0,0,0.15); }
+        .item-content.lesson     { border-right-color: #74b9ff; }
+        .item-content.assignment { border-right-color: #fd79a8; }
+        .item-content.test       { border-right-color: #fdcb6e; }
+
+        .item-icon {
+            position: absolute;
+            right: 50%;
+            top: 20px;
+            transform: translateX(50%);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            color: white;
+            z-index: 10;
+        }
+
+        .item-icon.lesson     { background: #74b9ff; }
+        .item-icon.assignment { background: #fd79a8; }
+        .item-icon.test       { background: #fdcb6e; }
+
+        .item-title       { font-size: 1.3rem; font-weight: bold; margin-bottom: 8px; color: #2d3436; }
+        .item-date        { font-size: 0.9rem; color: #636e72; margin-bottom: 10px; font-weight: bold; }
+        .item-description { color: #636e72; line-height: 1.5; }
+
+        .item-details {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 2px dashed #ddd;
+        }
+
+        .item-details.expanded { max-height: 200px; }
+
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: #636e72;
+            font-size: 1.2rem;
+        }
+
+        @media (max-width: 768px) {
+            .timeline::before { right: 30px; }
+            .timeline-item:nth-child(odd)  .item-content,
+            .timeline-item:nth-child(even) .item-content { margin-right: 60px; margin-left: 0; text-align: right; }
+            .item-icon { right: 30px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="timeline-container">
+        <div class="header">
+            <h1></h1>
+            <p></p>
+        </div>
+
+        <div class="current-date-indicator">
+            <div class="today-marker">
+                <span class="today-icon">📅</span>
+                <span class="today-text"></span>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="filter-btn all active"         onclick="filterItems('all')">📚 הצג הכל</button>
+            <button class="filter-btn lessons"            onclick="filterItems('lesson')">📖 שיעורים</button>
+            <button class="filter-btn assignments"        onclick="filterItems('assignment')">✏️ מטלות</button>
+            <button class="filter-btn tests"              onclick="filterItems('test')">🎯 מבחנים</button>
+        </div>
+
+        <div class="timeline" id="timeline">
+            <div class="today-timeline-marker">
+                <div class="today-marker-circle">
+                    <div class="today-marker-text">היום</div>
+                </div>
+            </div>
+            <div class="loading">טוען נתונים...</div>
+        </div>
+    </div>
+
+    <script>
+        const currentDate = new Date();
+        const hebrewDateOptions = { day: 'numeric', month: 'long', year: 'numeric' };
+        document.querySelector('.today-text').textContent =
+            'היום: ' + currentDate.toLocaleDateString('he-IL', hebrewDateOptions);
+
+        window.addEventListener('resize', calculateTodayMarkerPosition);
+
+        function calculateTodayMarkerPosition() {
+            const todayMarker = document.querySelector('.today-timeline-marker');
+            if (!todayMarker) return;
+            const todayString = currentDate.toLocaleDateString('he-IL', hebrewDateOptions);
+            const currentMonthName = currentDate.toLocaleDateString('he-IL', { month: 'long' });
+
+            const targetItem = Array.from(document.querySelectorAll('.timeline-item')).find(item => {
+                const dateText = item.querySelector('.item-date').textContent;
+                return dateText.includes(todayString);
+            });
+
+            if (targetItem) {
+                const rect = targetItem.getBoundingClientRect();
+                const timelineRect = document.querySelector('.timeline').getBoundingClientRect();
+                todayMarker.style.top = (rect.bottom - timelineRect.top + 20) + 'px';
+            } else {
+                const monthEl = Array.from(document.querySelectorAll('.month-title')).find(t =>
+                    t.textContent.includes(currentMonthName)
+                );
+                if (monthEl) {
+                    const sRect = monthEl.getBoundingClientRect();
+                    const tRect = document.querySelector('.timeline').getBoundingClientRect();
+                    todayMarker.style.top = (sRect.bottom - tRect.top + 150) + 'px';
+                }
+            }
+        }
+
+        function scrollToTodayWithBounce() {
+            const marker = document.querySelector('.today-timeline-marker');
+            if (!marker) return;
+            const markerTop = marker.getBoundingClientRect().top + window.scrollY;
+            const targetY   = markerTop - window.innerHeight / 2;
+            const overshootY = targetY + 180;
+            const duration   = 4700;
+            const overshootFraction = 0.72;
+            let start = null;
+
+            function easeInOutCubic(t) {
+                return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3) / 2;
+            }
+
+            function step(ts) {
+                if (!start) start = ts;
+                const t = Math.min((ts - start) / duration, 1);
+                let y;
+                if (t < overshootFraction) {
+                    y = easeInOutCubic(t / overshootFraction) * overshootY;
+                } else {
+                    const p = easeInOutCubic((t - overshootFraction) / (1 - overshootFraction));
+                    y = overshootY + p * (targetY - overshootY);
+                }
+                window.scrollTo(0, y);
+                if (t < 1) requestAnimationFrame(step);
+            }
+            setTimeout(() => requestAnimationFrame(step), 300);
+        }
+
+        function filterItems(type) {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            const map = { all: '.filter-btn.all', lesson: '.filter-btn.lessons', assignment: '.filter-btn.assignments', test: '.filter-btn.tests' };
+            document.querySelector(map[type]).classList.add('active');
+            document.querySelectorAll('.timeline-item').forEach(item => {
+                item.classList.toggle('hidden', type !== 'all' && item.getAttribute('data-type') !== type);
+            });
+            setTimeout(calculateTodayMarkerPosition, 100);
+        }
+
+        var SCHOOL_YEAR_MONTHS = [
+            '🍂 ספטמבר', '🎃 אוקטובר', '🦃 נובמבר', '❄️ דצמבר',
+            '⛄ ינואר',  '💝 פברואר',  '🌸 מרץ',    '🌷 אפריל',
+            '🌻 מאי',    '☀️ יוני'
+        ];
+
+        function renderGrade(grade) {
+            if (!grade) return;
+            document.querySelector('.header h1').textContent = grade.config.title;
+            document.querySelector('.header p').textContent  = grade.config.subtitle;
+
+            const timeline    = document.getElementById('timeline');
+            const todayMarker = timeline.querySelector('.today-timeline-marker');
+            timeline.innerHTML = '';
+            if (todayMarker) timeline.appendChild(todayMarker);
+
+            const defaultIcons = { lesson: '📚', assignment: '✏️', test: '🎯' };
+
+            SCHOOL_YEAR_MONTHS.forEach(function(defaultTitle, idx) {
+                const monthData = grade.months[idx] || {};
+                const section   = document.createElement('div');
+                section.className = 'month-section';
+
+                const header = document.createElement('div');
+                header.className = 'month-header';
+                header.innerHTML = '<div class="month-title">' + (monthData.monthTitle || defaultTitle) + '</div>';
+                section.appendChild(header);
+
+                (monthData.items || []).forEach(function(item) {
+                    const icon = item.icon || defaultIcons[item.type] || '📚';
+                    const el   = document.createElement('div');
+                    el.className = 'timeline-item ' + item.type;
+                    el.setAttribute('data-type', item.type);
+                    if (item.style) el.style.cssText = item.style;
+
+                    el.innerHTML =
+                        '<div class="item-icon ' + item.type + '">' + icon + '</div>' +
+                        '<div class="item-content ' + item.type + '">' +
+                            '<div class="item-title">'       + item.title       + '</div>' +
+                            '<div class="item-date">'        + item.date        + '</div>' +
+                            '<div class="item-description">' + item.description + '</div>' +
+                            (item.details ? '<div class="item-details">' + item.details + '</div>' : '') +
+                        '</div>';
+
+                    section.appendChild(el);
+                });
+
+                timeline.appendChild(section);
+            });
+        }
+
+        function initEventListeners() {
+            document.querySelectorAll('.item-content').forEach(function(item) {
+                item.addEventListener('click', function() {
+                    const details = this.querySelector('.item-details');
+                    if (details) {
+                        details.classList.toggle('expanded');
+                        setTimeout(calculateTodayMarkerPosition, 300);
+                    }
+                });
+            });
+
+            document.querySelectorAll('.timeline-item').forEach(function(item) {
+                item.addEventListener('mouseenter', function() { this.style.transform = 'scale(1.02)'; });
+                item.addEventListener('mouseleave', function() { this.style.transform = 'scale(1)'; });
+            });
+
+            document.querySelectorAll('.item-icon').forEach(function(icon) {
+                icon.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    var self = this;
+                    self.style.transform = 'translateX(50%) scale(1.3)';
+                    setTimeout(function() { self.style.transform = 'translateX(50%) scale(1)'; }, 200);
+                });
+            });
+        }
+
+        // Load grade data from API
+        (async function() {
+            const parts    = window.location.pathname.split('/').filter(Boolean);
+            const idx      = parts.indexOf('grade');
+            const gradeKey = (idx >= 0 && parts[idx + 1]) ? parts[idx + 1]
+                           : new URLSearchParams(window.location.search).get('grade');
+
+            if (!gradeKey) { window.location.href = '/'; return; }
+
+            try {
+                const resp = await fetch('/api/grades/' + gradeKey);
+                if (!resp.ok) throw new Error('שגיאה ' + resp.status);
+                const data = await resp.json();
+                document.title = data.config.title || 'לוח זמנים';
+                renderGrade(data);
+                initEventListeners();
+                calculateTodayMarkerPosition();
+                scrollToTodayWithBounce();
+            } catch (err) {
+                document.getElementById('timeline').innerHTML =
+                    '<p style="text-align:center;padding:40px;color:#636e72;">שגיאה בטעינת הנתונים: ' + err.message +
+                    '<br><a href="/" style="color:#667eea;">חזור לדף הבית</a></p>';
+            }
+        })();
+    </script>
+</body>
+</html>
